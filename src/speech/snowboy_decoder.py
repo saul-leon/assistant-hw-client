@@ -1,17 +1,14 @@
 # -*- coding: utf-8-*-
 
 from . import snowboydetect
+from src.utils.audio_utils import save_wav_file
 
 import collections
 import pyaudio
 import time
-import wave
 import os
 
 import logging
-
-#from ctypes import *
-#from contextlib import contextmanager
 
 class RingBuffer(object):
     def __init__(self, size=4096):
@@ -65,6 +62,8 @@ class HotwordDetector(object):
         self.detector.ApplyFrontend(apply_frontend)
 
         self.num_hotwords = self.detector.NumHotwords()
+
+        self.can_start_recording = False
 
         if len(decoder_model) > 1 and len(sensitivity) == 1:
             sensitivity = sensitivity * self.num_hotwords
@@ -176,19 +175,22 @@ class HotwordDetector(object):
                 continue
 
             status = self.detector.RunDetection(data)
-
+    
             if status == -1:
                 self._logger.warning("Error initializing streams or reading audio data")
 
             if state == "PASSIVE":
 
-                if status > 0: # hotword detected
+                if status > 0 or self.can_start_recording: # hotword detected
 
-                    self.recordedData = []
-                    self.recordedData.append(data)
+                    if self.can_start_recording:
+                        status = 1
+                    
+                    self.recorded_data = []
+                    self.recorded_data.append(data)
 
-                    silentCount = 0
-                    recordingCount = 0
+                    silent_count = 0
+                    recording_count = 0
 
                     now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
                     self._logger.info("Hotword detected at time: " + now)
@@ -198,61 +200,35 @@ class HotwordDetector(object):
                         callback()
 
                     if audio_recorder_callback is not None:
-                        state = "ACTIVE"
-
-                    continue
+                        state = "ACTIVE"                    
 
             elif state == "ACTIVE":
 
-                stopRecording = False
+                stop_recording = False
 
-                if recordingCount > recording_timeout:
-                    stopRecording = True
+                if recording_count > recording_timeout:
+                    stop_recording = True
 
                 elif status == -2: # silence found
-                    if silentCount > silent_count_threshold:
-                        stopRecording = True
+                    if silent_count > silent_count_threshold:
+                        stop_recording = True
                     else:
-                        silentCount = silentCount + 1
+                        silent_count = silent_count + 1
 
                 elif status == 0: # voice found
-                    silentCount = 0
+                    silent_count = 0
 
-                if stopRecording == True:
-                    fname = self.saveWaveFile()
+                if stop_recording == True:
+                    fname = save_wav_file(self.audio, self.recorded_data, 1, self.detector.BitsPerSample() / 8, self.detector.SampleRate())
+                    self._logger.debug("wav file saved on: %s" % fname)
                     audio_recorder_callback(fname)
                     state = "PASSIVE"
                     continue
 
-                recordingCount = recordingCount + 1
-                self.recordedData.append(data)
+                recording_count = recording_count + 1
+                self.recorded_data.append(data)
 
         logger.debug("finished.")
-
-    def saveWaveFile(self):
-
-        filename = 'tmp/user-request-%s.wav' % str(int(time.time()))
-
-        wave_file = wave.open(filename, 'wb')
-        wave_file.setnchannels(1)
-        wave_file.setsampwidth(
-            self.audio.get_sample_size(
-                self.audio.get_format_from_width(
-                    self.detector.BitsPerSample() / 8
-                )
-            )
-        )
-        wave_file.setframerate(
-            self.detector.SampleRate()
-        )
-        wave_file.writeframes(
-            b''.join(self.recordedData)
-        )
-        wave_file.close()
-
-        self._logger.debug("wav file saved on: %s" % filename)
-
-        return filename
 
     def __del__(self):
         """

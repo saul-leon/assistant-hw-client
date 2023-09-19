@@ -12,7 +12,6 @@ class Mic:
     # Not used, reserved for future applications
 
     def __init__(self):
-
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(logging.INFO)
 
