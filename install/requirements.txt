@@ -1,0 +1,8 @@
+pyaudio
+numpy
+requests
+pynput
+pydub
+pygame
+pocketsphinx
+SpeechRecognition

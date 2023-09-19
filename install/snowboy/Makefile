@@ -40,11 +40,14 @@ else
     LDLIBS := -lm -ldl -lf77blas -lcblas -llapack -latlas
 endif
 
-# x64
-SNOWBOYDETECTLIBFILE = $(TOPDIR)/aarch64-libsnowboy-detect.a
+# X64
+SNOWBOYDETECTLIBFILE = $(TOPDIR)/libs/aarch64-libsnowboy-detect.a
+
+# UBUNTU - DOCKER
+#SNOWBOYDETECTLIBFILE = $(TOPDIR)/libs/ubuntu64-libsnowboy-detect.a
 
 # ARM
-#SNOWBOYDETECTLIBFILE = $(TOPDIR)/rpi-libsnowboy-detect.a
+#SNOWBOYDETECTLIBFILE = $(TOPDIR)/libs/rpi-libsnowboy-detect.a
 
 all: $(SNOWBOYSWIGLIBFILE) $(SNOWBOYDETECTSWIGLIBFILE)
 

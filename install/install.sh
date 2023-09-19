@@ -1,7 +1,7 @@
 #!/bin/sh
 
 sudo apt update
-sudo apt install python3 python3-pyaudio python3-pip libatlas-base-dev portaudio19-dev
+sudo apt install python3 python3-pyaudio python3-pip libatlas-base-dev portaudio19-dev pocketsphinx ffmpeg
 
 INSTALL_DIR=`pwd`
 cd ~/
